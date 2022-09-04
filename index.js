@@ -26,13 +26,13 @@ const messageSchema = joi.object({
 });
 
 function doStatusMessage (participant, status) {
-    const actualTime = dayjs().format('HH:mm:ss');
+    const currentTime = dayjs().format('HH:mm:ss');
     const statusMessage = {
         from: participant.name,
         to: 'Todos',
         text: `${status} sala...`,
         type: 'status',
-        time: actualTime
+        time: currentTime
     };
     return statusMessage;
 }
@@ -108,6 +108,24 @@ app.get('/messages', async (request, response) => {
             messages = [...messages.slice(-Number(limit))];
         }
         response.send(messages);
+    } catch (error) {
+        response.status(500).send(error.message);
+    }
+});
+
+app.post('/status', async (request, response) => {
+    const { user } = request.headers;
+
+    try {
+        const participant = await db.collection('participants').findOne({ name: user });
+        if (!participant) {
+            response.sendStatus(404);
+            return;
+        }
+        const currentTime = Date.now();
+        await db.collection('participants')
+            .updateOne({ _id: participant._id }, { $set: { lastStatus: currentTime }});
+        response.sendStatus(200);
     } catch (error) {
         response.status(500).send(error.message);
     }
