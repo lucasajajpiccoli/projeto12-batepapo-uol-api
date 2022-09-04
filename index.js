@@ -37,6 +37,24 @@ function doStatusMessage (participant, status) {
     return statusMessage;
 }
 
+async function removeInactiveUsers () {
+    let statusMessage;
+    try {
+        const participants = await db.collection('participants').find().toArray();
+        const participantsToRemove = participants
+            .filter(participant => Date.now() - participant.lastStatus > 10000);
+        for (let i = 0; i < participantsToRemove.length; i++) {
+            await db.collection('participants')
+                .deleteOne({ _id: participantsToRemove[i]._id });
+            statusMessage = {...doStatusMessage(participantsToRemove[i], "sai da")};
+            const response = await db.collection('messages').insertOne(statusMessage);
+            console.log(response);
+        }
+    } catch (error) {
+        console.error(error.message);
+    }
+}
+
 app.post('/participants', async (request, response) => {
     const validation = participantSchema.validate(request.body, { abortEarly: false });
     if (validation.error) {
@@ -130,5 +148,7 @@ app.post('/status', async (request, response) => {
         response.status(500).send(error.message);
     }
 });
+
+setInterval(removeInactiveUsers, 15000);
 
 app.listen(5000, () => console.log("Listening on port 5000"));
