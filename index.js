@@ -68,6 +68,32 @@ app.get('/participants', async (request, response) => {
     } catch (error) {
         response.status(500).send(error.message);
     }
-})
+});
+
+app.post('/messages', async (request, response) => {
+    const { to, text, type } = request.body;
+    const { user: from } = request.headers;
+
+    const validation = messageSchema.validate(request.body, { abortEarly: false });
+    if (validation.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        response.status(422).send(errors);
+        return;
+    }
+
+    try {
+        const isThereParticipant = await db.collection('participants').findOne({name: from});
+        if (!isThereParticipant) {
+            response.status(422).send("Sender is not in the room.");
+            return;
+        }
+        const time = dayjs().format('HH:mm:ss');
+        const message = {from, to, text, type, time};
+        await db.collection('messages').insertOne(message);
+        response.sendStatus(201);
+    } catch (error) {
+        response.status(500).send(error.message);
+    }
+});
 
 app.listen(5000, () => console.log("Listening on port 5000"));
