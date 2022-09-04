@@ -96,4 +96,21 @@ app.post('/messages', async (request, response) => {
     }
 });
 
+app.get('/messages', async (request, response) => {
+    const { limit } = request.query;
+    const { user } = request.headers;
+
+    try {
+        let messages = await db.collection('messages').find(
+            { $or: [ { type: "message" }, { type: "status" }, { from: user }, { to: user }]})
+            .toArray();
+        if (limit) {
+            messages = [...messages.slice(-Number(limit))];
+        }
+        response.send(messages);
+    } catch (error) {
+        response.status(500).send(error.message);
+    }
+});
+
 app.listen(5000, () => console.log("Listening on port 5000"));
