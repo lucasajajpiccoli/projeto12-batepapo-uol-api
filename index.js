@@ -61,4 +61,13 @@ app.post('/participants', async (request, response) => {
     }
 });
 
+app.get('/participants', async (request, response) => {
+    try {
+        const participants = await db.collection('participants').find().toArray();
+        response.send(participants);
+    } catch (error) {
+        response.status(500).send(error.message);
+    }
+})
+
 app.listen(5000, () => console.log("Listening on port 5000"));
